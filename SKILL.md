@@ -32,9 +32,6 @@ python3 search_spotify_free.py   # SpotipyFree 非公式API（429回避、hermes
 
 対象: 「0829LOFIてざわりNY」https://open.spotify.com/playlist/6bFjKxrAskG62YN3SG2Qtv
 出力先: `/mnt/c/Users/dance/Music/0829LOFIてざわりNY`（`NN - アーティスト - タイトル.mp3`）
-スクリプト一式: `~/repo/spotify-sync/`（sync_lofi.sh / trickle_dl.sh / finalize_lofi.py / gen_embed_html.py）
-
-- 通常: `bash ~/repo/spotify-sync/sync_lofi.sh`（`spotdl sync <url> --playlist-numbering`）
 - 共有アプリ 429（クォータ枯渇）時: embed スクレイプ → 差分 → 五月雨式DL → finalize → HTML再生成
 - **spotdl のドイツ語バグ**: `ytmusic.py` が `YTMusic(language="de")` 固定だと shelf タイトルが
   「Titel」になり全曲 No results found。両方の spotdl（~/.local と ~/.hermes/venv）を
