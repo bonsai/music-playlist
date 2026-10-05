@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Georgia Prog 1975 — YouTube</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:900px;margin:auto;padding:24px;background:#111;color:#eee}
+h1{margin-bottom:8px}.grid{display:grid;gap:18px}.card{background:#1d1d1d;padding:16px;border-radius:12px}
+iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:8px}
+a{color:#8ec5ff}.meta{color:#aaa;font-size:.9rem}
+</style>
+</head>
+<body>
+<h1>Georgia Prog / Psych — 1975</h1>
+<p>Georgian SSR の1975年前後。YouTube動画を貼って聴くための最小HTML。</p>
+<div id="app" class="grid"></div>
+<script>
+const records=[
+ {artist:"Iveria",title:"Иверия",year:1975},
+ {artist:"Kolkheti",title:"Колхети",year:1975},
+ {artist:"Aisi",title:"აისი",year:1975},
+ {artist:"Dielo",title:"Dielo '75",year:1975},
+ {artist:"VIA-75",title:"Оровела",year:1976,recorded:1975}
+];
+const app=document.querySelector("#app");
+app.innerHTML=records.map((r,i)=>`<article class="card">
+<h2>${r.artist} — ${r.title}</h2>
+<div class="meta">${r.year}${r.recorded?" / recorded "+r.recorded:""}</div>
+<p><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(r.artist+" "+r.title)}" target="_blank" rel="noopener">YouTubeで検索</a></p>
+</article>`).join("");
+</script>
+</body>
+</html>
