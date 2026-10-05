@@ -73,3 +73,18 @@ spotify/confirmed.jsonl
     ↓
 Spotify playlist
 ```
+
+
+## Spotify API package
+
+The reusable Go package is in `spotify/api.go`.
+
+It exposes:
+
+- `spotify.ClientCredentials()`
+- `spotify.New(token)`
+- `Client.SearchTracks()`
+- `Client.CreatePlaylist()`
+- `Client.AddItems()`
+
+It uses Spotify's current Web API playlist endpoints: `POST /me/playlists` and `POST /playlists/{id}/items`.
