@@ -88,3 +88,18 @@ It exposes:
 - `Client.AddItems()`
 
 It uses Spotify's current Web API playlist endpoints: `POST /me/playlists` and `POST /playlists/{id}/items`.
+
+
+## YouTube API package
+
+The reusable Go package is in `youtube/api.go`.
+
+It provides:
+
+- `youtube.New(apiKey, token)`
+- `Client.SearchVideos()`
+- `Client.CreatePlaylist()`
+- `Client.AddVideos()`
+- `Client.ListPlaylistVideos()`
+
+Search uses a YouTube Data API key. Playlist creation and video insertion use OAuth 2.0. The API follows the current YouTube Data API v3 `playlists.insert` and `playlistItems.insert` resources.
