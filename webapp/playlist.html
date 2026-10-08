@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Playlist - All Tracks</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .filter-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 30px;
+            background: white;
+            color: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 25px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .tab.active {
+            background: white;
+            color: #667eea;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.95);
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 140px;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .playlist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .playlist-item {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .playlist-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+        .playlist-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+        }
+        .item-region {
+            font-size: 0.75rem;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        .item-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #333;
+            margin: 0 0 5px 0;
+            line-height: 1.3;
+        }
+        .item-artist {
+            font-size: 1rem;
+            color: #667eea;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+        .item-year {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .item-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .meta-tag {
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: #666;
+        }
+        .meta-tag.genre {
+            background: #e8f0fe;
+            color: #667eea;
+        }
+        .playlist-item a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            padding: 40px;
+        }
+        .empty {
+            text-align: center;
+            color: white;
+            font-size: 1.1rem;
+            padding: 40px;
+        }
+        .source-link {
+            font-size: 0.8rem;
+            color: #667eea;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Music Playlist</h1>
+        <p class="subtitle">すべての曲を地域・ジャンル別に表示</p>
+
+        <div class="stats-bar" id="statsBar"></div>
+
+        <div class="tabs" id="regionTabs">
+            <button class="tab active" data-region="all">All</button>
+            <button class="tab" data-region="India">India</button>
+            <button class="tab" data-region="Japan">Japan</button>
+            <button class="tab" data-region="Georgia">Georgia</button>
+            <button class="tab" data-region="Russia">Russia</button>
+            <button class="tab" data-region="USSR">USSR</button>
+            <button class="tab" data-region="Azerbaijan">Azerbaijan</button>
+            <button class="tab" data-region="Moldova">Moldova</button>
+            <button class="tab" data-region="Lithuania">Lithuania</button>
+            <button class="tab" data-region="Latvia">Latvia</button>
+            <button class="tab" data-region="Belarus">Belarus</button>
+            <button class="tab" data-region="Armenia">Armenia</button>
+            <button class="tab" data-region="Turkmenistan">Turkmenistan</button>
+        </div>
+
+        <div class="controls">
+            <input type="text" class="search-box" id="search" placeholder="Search artist, title, country...">
+            <button class="filter-btn active" onclick="sortBy('newest')">Newest</button>
+            <button class="filter-btn" onclick="sortBy('year')">Year</button>
+            <button class="filter-btn" onclick="sortBy('name')">Name</button>
+        </div>
+
+        <div class="playlist-grid" id="playlist"></div>
+    </div>
+
+    <script>
+        let allTracks = [];
+        let currentRegion = 'all';
+        let currentSort = 'newest';
+        let debounceTimer;
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('statsBar').innerHTML = `
+                    <div class="stat-card"><div class="stat-number">${data.total_tracks}</div><div class="stat-label">Total Tracks</div></div>
+                    <div class="stat-card"><div class="stat-number">${data.countries.length}</div><div class="stat-label">Countries</div></div>
+                `;
+            } catch (e) {
+                console.error('Stats load failed:', e);
+            }
+        }
+
+        async function loadTracks() {
+            try {
+                const res = await fetch('/api/tracks?limit=200');
+                allTracks = await res.json();
+                renderPlaylist(allTracks);
+            } catch (e) {
+                console.error('Tracks load failed:', e);
+                document.getElementById('playlist').innerHTML = '<div class="empty">Error loading tracks</div>';
+            }
+        }
+
+        function renderPlaylist(tracks) {
+            const container = document.getElementById('playlist');
+            if (!tracks.length) {
+                container.innerHTML = '<div class="empty">No tracks found</div>';
+                return;
+            }
+            container.innerHTML = tracks.map(t => {
+                const genres = t.genres ? JSON.parse(t.genres).map(g => `<span class="meta-tag genre">${escapeHtml(g)}</span>`).join('') : '';
+                const year = t.year ? `<div class="item-year">${t.year}</div>` : '';
+                const yt = t.youtubeId ? `<a href="https://youtube.com/watch?v=${t.youtubeId}" target="_blank" class="source-link">▶ Watch on YouTube</a>` : '';
+                return `
+                    <a href="/track/${t.id}" class="playlist-item">
+                        <div class="item-region">${escapeHtml(t.country || 'Unknown')}</div>
+                        <h3 class="item-title">${escapeHtml(t.title || 'Untitled')}</h3>
+                        <div class="item-artist">${escapeHtml(t.artist || '')}</div>
+                        ${year}
+                        <div class="item-meta">${genres}</div>
+                        ${yt}
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function filterByRegion(region) {
+            currentRegion = region;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[data-region="${region}"]`).classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            let filtered = [...allTracks];
+            if (currentRegion !== 'all') {
+                filtered = filtered.filter(t => (t.country || '').includes(currentRegion));
+            }
+            filtered = sortByData(filtered, currentSort);
+            renderPlaylist(filtered);
+        }
+
+        function sortByData(tracks, sort) {
+            const sorted = [...tracks];
+            switch (sort) {
+                case 'year':
+                    return sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
+                case 'name':
+                    return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+                default:
+                    return sorted;
+            }
+        }
+
+        function sortBy(sort) {
+            currentSort = sort;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            applyFilters();
+        }
+
+        document.getElementById('search').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const q = document.getElementById('search').value.trim().toLowerCase();
+                let filtered = allTracks.filter(t => 
+                    (t.title || '').toLowerCase().includes(q) ||
+                    (t.artist || '').toLowerCase().includes(q) ||
+                    (t.country || '').toLowerCase().includes(q)
+                );
+                if (currentRegion !== 'all') {
+                    filtered = filtered.filter(t => (t.country || '').includes(currentRegion));
+                }
+                renderPlaylist(sortByData(filtered, currentSort));
+            }, 300);
+        });
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => filterByRegion(tab.dataset.region));
+        });
+
+        loadStats();
+        loadTracks();
+    </script>
+</body>
+</html>
