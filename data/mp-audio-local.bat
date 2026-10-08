@@ -1,0 +1,10 @@
+off
+set
+MP_DAILY_LIMIT=3
+set
+MP_FORMAT=mp3
+set
+MP_QUALITY=0
+bash
+C:\Users\0501JP\.config\opencode\skills\yt-audio\scripts\mp-audio.sh
+georgia-1975.jsonl

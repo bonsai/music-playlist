@@ -1,0 +1,27 @@
+{
+  "name": "radiooooo-scrobbler",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Chrome extension (MV3) that scrobbles Radiooooo playback to Last.fm",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "bun": ">=1",
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "build:win": "bun run scripts/build.ts --out=/mnt/c/Users/0501JP/radiooooo-scrobbler-dist",
+    "watch": "bun run scripts/build.ts --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "check": "bun run typecheck && bun run test && bun run build"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.287",
+    "bun": "latest",
+    "jsdom": "^25.0.1",
+    "playwright-core": "^1.49.1",
+    "typescript": "5.6.3"
+  }
+}

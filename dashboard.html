@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音楽プレイリスト統合ダッシュボード</title>
+<style>
+:root { --bg: #0f0f0f; --card: #1a1a1a; --line: #333; --accent: #4a9eff; --ok: #4caf50; --warn: #ffb74d; --text: #e8e8e8; --muted: #9aa0a6; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px system-ui, sans-serif; line-height: 1.5; }
+header { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); padding: 14px 20px; }
+h1 { margin: 0 0 12px; font-size: 18px; }
+.filter { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.filter input, .filter select { background: #1a1a1a; border: 1px solid var(--line); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+.filter input { flex: 1; min-width: 200px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; text-align: center; }
+.stat .num { font-size: 24px; font-weight: 700; color: var(--accent); display: block; }
+.stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.source-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 11px; background: #262626; color: var(--muted); }
+.source-badge.sf { background: rgba(74,158,255,0.12); color: #4a9eff; }
+.source-badge.georgia { background: rgba(104,153,248,0.12); color: #6898f8; }
+.source-badge.bollywood { background: rgba(255,183,77,0.12); color: #ffb74d; }
+.section { margin-bottom: 24px; }
+.section h2 { margin: 0 0 12px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+.section h2 .count { font-size: 11px; padding: 1px 7px; border-radius: 9px; background: #262626; color: var(--muted); }
+.row { display: flex; gap: 8px; padding: 9px 12px; background: #161616; border: 1px solid #262626; border-radius: 8px; margin-bottom: 6px; }
+.row:last-child { margin-bottom: 0; }
+.row .num { width: 32px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.row .flag { width: 24px; text-align: center; font-size: 15px; }
+.row .info { flex: 1; min-width: 0; }
+.row .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .meta { font-size: 11px; color: var(--muted); }
+.row .actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+.btn { font-size: 11px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--line); background: #262626; color: var(--text); cursor: pointer; text-decoration: none; display: inline-block; line-height: 1; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.yt { background: rgba(255,85,85,0.12); border-color: rgba(255,85,85,0.3); color: #ff5555; }
+.btn.yt:hover { border-color: #ff5555; color: #ff5555; }
+.btn.reg { background: rgba(76,175,80,0.12); border-color: rgba(76,175,80,0.3); color: #4caf50; }
+.btn.reg:hover { border-color: #4caf50; color: #4caf50; }
+.tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.tab { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--line); background: #161616; color: var(--muted); font-size: 12px; cursor: pointer; }
+.tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.empty { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; background: #161616; border: 1px dashed var(--line); border-radius: 10px; }
+.search-box { position: relative; }
+.search-box input { width: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>音楽プレイリスト統合ダッシュボード</h1>
+  <div class="filter">
+    <select id="sourceFilter">
+      <option value="all">すべて</option>
+      <option value="soviet-funk">Soviet Funk</option>
+      <option value="georgia">Georgia</option>
+      <option value="bollywood">Bollywood</option>
+    </select>
+    <input id="search" placeholder="検索（アーティスト / タイトル）">
+    <a class="btn" href="data/soviet-funk/by-country.jsonl">JSONL 出力</a>
+  </div>
+</header>
+
+<main class="container">
+  <section class="stats">
+    <div class="stat"><span class="num" id="stat-total">—</span><span class="label">合計記録</span></div>
+    <div class="stat"><span class="num" id="stat-sf">—</span><span class="label">Soviet Funk</span></div>
+    <div class="stat"><span class="num" id="stat-georgia">—</span><span class="label">Georgia</span></div>
+    <div class="stat"><span class="num" id="stat-bollywood">—</span><span class="label">Bollywood</span></div>
+  </section>
+
+  <section class="tabs">
+    <div class="tab active" data-tab="unified">統合一覧</div>
+    <div class="tab" data-tab="countries">国/地域別</div>
+  </section>
+
+  <section id="tab-unified" class="section">
+    <h2>統合アーティスト一覧</h2>
+    <div id="unified-list"></div>
+  </section>
+
+  <section id="tab-countries" class="section" style="display:none">
+    <h2>国 / 地域別（各 10 件まで）</h2>
+    <div id="countries-list" class="grid"></div>
+  </section>
+</main>
+
+<script>
+const DATA = {
+  soviet: [],
+  georgia: [],
+  bollywood: [],
+};
+
+function loadFile(path, dest) {
+  return fetch(path).then(r => {
+    if (!r.ok) return;
+    return r.text().then(t => {
+      for (const line of t.split(/\n/)) {
+        if (line.trim()) DATA[dest].push(JSON.parse(line));
+      }
+    });
+  });
+}
+
+async function init() {
+  await loadFile("data/soviet-funk/by-country.jsonl", "soviet");
+  await loadFile("data/soviet-funk/georgia/1975.jsonl", "georgia");
+  await loadFile("data/bollywood/reg.jsonl", "bollywood");
+
+  const all = [...DATA.soviet, ...DATA.georgia, ...DATA.bollywood];
+
+  document.getElementById("stat-total").textContent = all.length;
+  document.getElementById("stat-sf").textContent = DATA.soviet.length;
+  document.getElementById("stat-georgia").textContent = DATA.georgia.length;
+  document.getElementById("stat-bollywood").textContent = DATA.bollywood.length;
+
+  renderUnified(all);
+  renderCountries(all);
+}
+
+function sourceClass(src) {
+  return src === "soviet-funk" ? "sf" : src === "georgia" ? "georgia" : "bollywood";
+}
+
+function sourceName(src) {
+  return src === "soviet-funk" ? "Soviet Funk" : src === "georgia" ? "Georgia" : "Bollywood";
+}
+
+function renderUnified(all) {
+  const el = document.getElementById("unified-list");
+  if (all.length === 0) {
+    el.innerHTML = '<div class="empty">データがありません</div>';
+    return;
+  }
+  el.innerHTML = all.map((r, i) => `
+    <div class="row">
+      <span class="num">${i + 1}</span>
+      <span class="flag">${emoji(r.country || r.region || r.source || "")}</span>
+      <div class="info">
+        <div class="title">${r.artist || r.title}</div>
+        <div class="meta">
+          ${sourceName(r.source)} · ${r.year || r.recorded_year || ""}
+          ${r.title ? " — " + r.title : ""}
+          ${r.country ? " · " + r.country : ""}
+          ${r.genres ? " · " + r.genres.slice(0,3).join(", ") : ""}
+        </div>
+      </div>
+      <div class="actions">
+        ${r.youtubeId ? `<a class="btn yt" href="https://www.youtube.com/watch?v=${r.youtubeId}" target="_blank" rel="noopener">YouTube</a>` : "<span class='btn'>YouTube なし</span>"}
+        ${r.source === "bollywood" ? `<a class="btn reg" href="#" onclick="downloadSong(this, ${JSON.stringify(r).replace(/"/g,"&quot;")})">DL</a>` : ""}
+        <span class="source-badge ${sourceClass(r.source || "soviet-funk")}">${sourceName(r.source)}</span>
+      </div>
+    </div>`).join("");
+}
+
+function renderCountries(all) {
+  const by = Object.groupBy(all, r => r.country || r.region || "その他");
+  const el = document.getElementById("countries-list");
+  el.innerHTML = Object.entries(by)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([country, items]) => {
+      const list = items.slice(0, 10).map(r => `
+        <div class="row">
+          <span class="flag">${emoji(country)}</span>
+          <div class="info">
+            <div class="title">${r.artist || r.title}</div>
+            <div class="meta">${sourceName(r.source)} · ${r.year || r.recorded_year || ""} · ${(r.genres||[]).slice(0,2).join(", ")}</div>
+          </div>
+          <div class="actions">
+            ${r.youtubeId ? `<a class="btn yt" href="https://www.youtube.com/watch?v=${r.youtubeId}" target="_blank" rel="noopener">YouTube</a>` : ""}
+          </div>
+        </div>`).join("");
+      return `
+        <div class="card">
+          <div class="card-header">
+            <span style="font-weight:600">${country} <span style="color:var(--muted);font-size:12px">(${items.length} 件)</span></span>
+          </div>
+          <div class="card-body">
+            ${list}
+          </div>
+        </div>`;
+    }).join("");
+}
+
+function emoji(country) {
+  const map = { "Russia":"🇷🇺", "Georgia":"🇬🇪", "Lithuania":"🇱🇹", "Latvia":"🇱🇻",
+    "Belarus":"🇧🇾", "Moldova":"🇲🇩", "Ukraine":"🇺🇦", "Armenia":"🇦🇲", "Azerbaijan":"🇦🇿",
+    "Turkmenistan":"🇹🇲", "Dagestan":"🇷🇺", "India":"🇮🇳", "USSR":"🏳️", "Baltic":"🇱🇻🇱🇹🇪🇪" };
+  return map[country] || "";
+}
+
+function downloadSong(btn, song) {
+  btn.textContent = "DL 中...";
+  fetch("/api/download", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ artist: song.artist, title: song.title, year: song.year }),
+  }).then(r => r.json()).then(d => {
+    if (d.error) { btn.textContent = "DL エラー"; console.error(d.error); return; }
+    btn.textContent = "DL 完了";
+    window.open(d.url, "_blank");
+  }).catch(e => { btn.textContent = "エラー"; console.error(e); });
+}
+
+// Tabs
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("tab-unified").style.display = t.dataset.tab === "unified" ? "block" : "none";
+    document.getElementById("tab-countries").style.display = t.dataset.tab === "countries" ? "block" : "none";
+  });
+});
+
+// Search / filter
+document.getElementById("search").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  renderUnified(
+    document.querySelectorAll(".tab.active")[0].dataset.tab === "unified"
+      ? allAll().filter(r => (r.artist + " " + r.title + " " + r.country).toLowerCase().includes(q))
+      : []
+  );
+});
+
+function allAll() {
+  return [...DATA.soviet, ...DATA.georgia, ...DATA.bollywood];
+}
+
+init();
+</script>
+</body>
+</html>

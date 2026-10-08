@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Radiooooo → Last.fm</title>
+  </head>
+  <body class="popup">
+    <header class="tabs">
+      <button type="button" class="tab active" data-tab="nowplaying">
+        再生中
+      </button>
+      <button type="button" class="tab" data-tab="settings">
+        設定
+      </button>
+      <button type="button" class="tab" data-tab="logs">
+        ログ
+      </button>
+    </header>
+
+    <!-- ── 再生中 ── -->
+    <main class="tab-content" id="nowplaying">
+      <div class="card">
+        <div class="row spread">
+          <span id="auth-pill" class="pill">…</span>
+          <span id="user" class="muted"></span>
+        </div>
+        <div class="row" style="margin-top: 8px">
+          <button id="open-options" type="button">詳細設定</button>
+          <button id="retry" type="button">再送</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="track" class="muted">再生中の曲なし</div>
+        <div id="detail" class="mono muted"></div>
+        <div class="bar"><span id="bar" style="width: 0%"></span></div>
+        <div id="progress" class="mono muted" style="margin-top: 4px"></div>
+      </div>
+
+      <div class="card tight">
+        <div class="row spread">
+          <span class="muted">未送信キュー</span>
+          <span id="queue" class="mono">0</span>
+        </div>
+        <div class="row spread">
+          <span class="muted">検出経路</span>
+          <span id="bridge" class="mono">—</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── 設定 ── -->
+    <main class="tab-content hide" id="settings">
+      <div class="card">
+        <label for="s-api-key">API key</label>
+        <input
+          id="s-api-key"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+        />
+
+        <label for="s-api-secret">Shared secret</label>
+        <input
+          id="s-api-secret"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+        />
+
+        <div class="check"><input id="s-np" type="checkbox" /><label for="s-np"
+          >Now Playing を送る</label
+        ></div>
+        <div class="check"><input id="s-scrobble" type="checkbox" /><label
+          for="s-scrobble"
+          >Scrobble を送る</label
+        ></div>
+        <button id="s-save" class="primary" type="button">保存</button>
+      </div>
+
+      <div class="card tight">
+        <div class="row spread">
+          <span class="muted">未送信キュー</span>
+          <span id="s-queue" class="mono">0</span>
+        </div>
+        <div class="row" style="margin-top: 8px">
+          <button id="s-export" class="primary" type="button">JSONL 出力</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── ログ ── -->
+    <main class="tab-content hide" id="logs">
+      <div id="log-list" class="log-list"></div>
+      <div class="row" style="margin-top: 8px">
+        <button id="s-refresh" type="button">更新</button>
+        <button id="s-copy" type="button">コピー</button>
+        <button id="s-clear" class="danger" type="button">消去</button>
+      </div>
+      <p id="status" class="muted" style="margin: 0"></p>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

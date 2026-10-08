@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; padding: 12px; 
+            background: #fafafa; 
+            width: 320px;
+        }
+        .header { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; border-bottom: 1px solid #eee; margin-bottom: 8px;
+        }
+        .header h1 { font-size: 1rem; color: #333; margin: 0; }
+        .search-box { 
+            width: 100%; padding: 8px 12px; 
+            border: 1px solid #ddd; border-radius: 6px; 
+            font-size: 0.85rem; outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-box:focus { border-color: #007bff; }
+        .empty { padding: 16px; color: #999; font-size: 0.85rem; text-align: center; }
+        .track { 
+            background: white; padding: 10px; margin: 6px 0; 
+            border-radius: 8px; border: 1px solid #eee;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .track:hover { border-color: #007bff; box-shadow: 0 2px 8px rgba(0,123,255,0.1); }
+        .artist { font-size: 0.85rem; font-weight: 600; color: #007bff; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .title { font-size: 0.85rem; color: #333; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        .meta { font-size: 0.7rem; color: #888; display: flex; gap: 8px; flex-wrap: wrap; }
+        .genres { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 4px; }
+        .genre { background: #e3f2fd; padding: 2px 6px; border-radius: 10px; font-size: 0.65rem; color: #1565c0; }
+        .actions { display: flex; gap: 4px; margin-top: 6px; }
+        .btn { 
+            padding: 4px 8px; font-size: 0.65rem; 
+            border: 1px solid #ddd; border-radius: 4px; 
+            background: white; cursor: pointer;
+            transition: all 0.2s;
+            min-width: 60px;
+        }
+        .btn:hover { background: #f0f0f0; }
+        .btn-primary { background: #007bff; color: white; border-color: #007bff; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; color: white; border-color: #6c757d; }
+        .stat { background: white; padding: 4px 8px; border-radius: 4px; border: 1px solid #eee; font-size: 0.7rem; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎵 Music Playlist</h1>
+        <button id="btnRefresh" class="btn btn-primary" style="font-size:0.7rem;padding:4px 8px;">Refresh</button>
+    </div>
+    <div class="stats-bar" id="statsBar"></div>
+    <input type="text" class="search-box" id="search" placeholder="Search artist, title, country..." autocomplete="off">
+    <div id="tracks" class="tracks"></div>
+    
+    <script>
+        let debounceTimer;
+        let tracksData = [];
+        
+        async function loadStats() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/stats');
+                const data = await res.json();
+                document.getElementById('statsBar').innerHTML = `
+                    <span class="stat">🎵 ${data.total_tracks} tracks</span>
+                    <span class="stat">🌍 ${data.countries.length} countries</span>
+                `;
+            } catch (e) {
+                console.error('Stats load failed:', e);
+            }
+        }
+        
+        async function loadTracks() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/tracks?limit=100');
+                tracksData = await res.json();
+                renderTracks(tracksData);
+            } catch (e) {
+                console.error('Tracks load failed:', e);
+                document.getElementById('tracks').innerHTML = '<div class="empty">Error loading tracks</div>';
+            }
+        }
+        
+        function renderTracks(tracks) {
+            const container = document.getElementById('tracks');
+            if (!tracks.length) {
+                container.innerHTML = '<div class="empty">No tracks found</div>';
+                return;
+            }
+            container.innerHTML = tracks.map(t => `
+                <div class="track" onclick="window.open('http://127.0.0.1:8000/track/${t.id}', '_blank')">
+                    <div class="artist">${escapeHtml(t.artist || '')}</div>
+                    <div class="title">${escapeHtml(t.title || '')}</div>
+                    <div class="meta">
+                        ${t.year ? `<span>${t.year}</span>` : ''}
+                        ${t.country ? `<span>${t.country}</span>` : ''}
+                        ${t.region ? `<span>${t.region}</span>` : ''}
+                    </div>
+                    ${t.genres ? `<div class="genres">${JSON.parse(t.genres).map(g => `<span class="genre">${escapeHtml(g)}</span>`).join('')}</div>` : ''}
+                    <div class="actions">
+                        <button class="btn btn-secondary" onclick="event.stopPropagation(); openDetail(${t.id})">Details</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function openDetail(id) {
+            window.open(`http://127.0.0.1:8000/track/${id}`, '_blank');
+        }
+        
+        // Search with debounce
+        document.getElementById('search').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function() {
+                const q = document.getElementById('search').value.trim();
+                if (q) {
+                    loadTracksBySearch(q);
+                } else {
+                    renderTracks(tracksData);
+                }
+            }, 300);
+        });
+        
+        function loadTracksBySearch(q) {
+            fetch(`http://127.0.0.1:8000/api/tracks?q=${encodeURIComponent(q)}&limit=100`)
+                .then(res => res.json())
+                .then(tracks => renderTracks(tracks))
+                .catch(err => console.error('Search failed:', err));
+        }
+        
+        // Refresh button
+        document.getElementById('btnRefresh').addEventListener('click', loadTracks);
+        
+        // Initialize
+        loadStats();
+        loadTracks();
+    </script>
+</body>
+</html>

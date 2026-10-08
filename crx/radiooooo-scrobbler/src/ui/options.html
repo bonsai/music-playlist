@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Radiooooo → Last.fm Scrobbler 設定</title>
+  </head>
+  <body style="max-width: 720px; margin: 0 auto">
+    <h1>Radiooooo → Last.fm Scrobbler</h1>
+    <p class="sub">
+      Radioooo の再生を Last.fm へ送ります。API key は
+      <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer">last.fm API account</a>
+      で取得してください（Callback URL と Secret は後の場で使えます）。
+    </p>
+
+    <h2>1. Last.fm 認証</h2>
+    <div class="card">
+      <label for="api-key">API key</label>
+      <input id="api-key" type="text" autocomplete="off" spellcheck="false" />
+
+      <label for="api-secret">Shared secret</label>
+      <input id="api-secret" type="text" autocomplete="off" spellcheck="false" />
+
+      <label for="redirect">Auth redirect URI（token を拾う先用）</label>
+      <input id="redirect" type="text" autocomplete="off" spellcheck="false" />
+
+      <div class="row" style="margin-top: 10px">
+        <button id="save-credentials" class="primary" type="button">保存</button>
+        <button id="request-token" type="button">Last.fm で許可</button>
+        <button id="test-auth" type="button">接続確認</button>
+        <button id="logout" class="danger" type="button">ログアウト</button>
+      </div>
+
+      <p class="muted" style="margin-bottom: 0">
+        「Last.fm で許可”后、自动で <code>?token=…</code> を拾ってセッションを結びます。拾えなかった場合は下の欄に貼り付けてください。
+      </p>
+
+      <label for="token">token（手動貼り付け用）</label>
+      <div class="row">
+        <input id="token" type="text" style="flex: 1" autocomplete="off" spellcheck="false" placeholder="eyJ…" />
+        <button id="complete-auth" type="button">確定</button>
+      </div>
+
+      <dl class="kv" style="margin-bottom: 0">
+        <dt>状態</dt>
+        <dd id="auth-state">—</dd>
+        <dt>ユーザー</dt>
+        <dd id="auth-user">—</dd>
+      </dl>
+    </div>
+
+    <h2>2. 動作</h2>
+    <div class="card">
+      <div class="check"><input id="enabled" type="checkbox" /><label for="enabled" style="margin: 0">有効化</label></div>
+      <div class="check"><input id="np" type="checkbox" /><label for="np" style="margin: 0">Now Playing を送る</label></div>
+      <div class="check"><input id="scrobble" type="checkbox" /><label for="scrobble" style="margin: 0">Scrobble を送る</label></div>
+      <div class="check"><input id="debug" type="checkbox" /><label for="debug" style="margin: 0">詳細ログ</label></div>
+
+      <div class="row spread">
+        <div>
+          <label for="queue-ttl">キューの保持日数</label>
+          <input id="queue-ttl" type="number" min="1" max="90" step="1" />
+        </div>
+        <div>
+          <label for="queue-limit">キュー上限</label>
+          <input id="queue-limit" type="number" min="10" max="5000" step="10" />
+        </div>
+        <div>
+          <label for="play-log-limit">履歴の保存件数</label>
+          <input id="play-log-limit" type="number" min="100" max="20000" step="100" />
+        </div>
+      </div>
+    </div>
+
+    <h2>3. 再生履歴（ローカル JSONL）</h2>
+    <div class="card">
+      <p class="muted" style="margin-top: 0">
+        検出した曲を 1 行 1 JSON で <code>chrome.storage.local</code> に溜めます。自動再生でも記録されます。
+      </p>
+      <dl class="kv">
+        <dt>記録数</dt>
+        <dd id="p-count">—</dd>
+        <dt>保存先</dt>
+        <dd id="p-path">—</dd>
+        <dt>日付範囲</dt>
+        <dd id="p-range">—</dd>
+      </dl>
+      <div class="row" style="margin-top: 8px">
+        <button id="refresh-plays" type="button">更新</button>
+        <button id="export-plays" class="primary" type="button">JSONL ダウンロード</button>
+        <button id="copy-plays" type="button">クリップボードへ</button>
+        <button id="clear-plays" class="danger" type="button">履歴を消去</button>
+      </div>
+      <label for="plays-search">絞り込み</label>
+      <input id="plays-search" type="search" placeholder="artist / track / album で検索" />
+      <div id="plays" class="plays"></div>
+    </div>
+
+    <h2>4. 診断</h2>
+    <div class="card">
+      <dl class="kv">
+        <dt>検出</dt>
+        <dd id="d-source">—</dd>
+        <dt>現在の曲</dt>
+        <dd id="d-track">—</dd>
+        <dt>再生状態</dt>
+        <dd id="d-state">—</dd>
+        <dt>MAIN bridge</dt>
+        <dd id="d-bridge">—</dd>
+        <dt>未送信</dt>
+        <dd id="d-queue">—</dd>
+        <dt>最終 flush</dt>
+        <dd id="d-flush">—</dd>
+      </dl>
+      <div class="row" style="margin-top: 8px">
+        <button id="refresh" type="button">更新</button>
+        <button id="flush" type="button">今すぐ再送</button>
+        <button id="export" type="button">JSONL 出力</button>
+        <button id="clear" class="danger" type="button">ログ消去</button>
+      </div>
+      <p id="status" class="muted"></p>
+    </div>
+
+    <h2>イベントログ</h2>
+    <div id="log"></div>
+
+    <p class="muted">
+      JSONL 例:
+      <code
+        >{"source":"radiooooo","tier":"network","artist":"Way Dynamic","track":"Not A Fan","album":"Not A Fan","duration":188,"started_at":"2026-10-06T09:30:00.000Z","listened_sec":188,"scrobbled":true}</code
+      >
+    </p>
+
+    <script src="options.js"></script>
+  </body>
+</html>

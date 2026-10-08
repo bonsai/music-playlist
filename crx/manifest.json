@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Music Playlist Sidebar",
+  "version": "1.0.0",
+  "description": "Music Playlist sidebar - displays tracks from localhost:8000",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Music Playlist"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "side_panel": {
+    "path": "sidebar.html"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
