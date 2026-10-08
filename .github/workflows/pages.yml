@@ -1,10 +1,11 @@
-name: Deploy Georgia YouTube page
+name: Deploy Music Playlist
 
 on:
   push:
     branches: [master]
     paths:
-      - "georgia/**"
+      - "data/**"
+      - "webapp/playlist.html"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -25,9 +26,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/configure-pages@v5
+      
+      - name: Build static site
+        run: |
+          mkdir -p ./dist
+          cp -r webapp/playlist.html ./dist/index.html
+          # Copy JSONL data files
+          mkdir -p ./dist/data/japan
+          cp -r data/japan/* ./dist/data/japan/ 2>/dev/null || true
+          mkdir -p ./dist/data/soviet-funk
+          cp -r data/soviet-funk/* ./dist/data/soviet-funk/ 2>/dev/null || true
+          # Copy georgia for backward compatibility
+          cp -r georgia/* ./dist/georgia/ 2>/dev/null || true
+      
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./georgia
+          path: ./dist
+      
       - id: deployment
         uses: actions/deploy-pages@v4
