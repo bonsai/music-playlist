@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -8,18 +8,35 @@ import urllib.parse
 import urllib.request
 from typing import List, Optional
 from datetime import datetime
+import asyncio
+import os
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
-DATA_ROOT = Path("C:/Users/0501JP/music-playlist/data")
-DB_PATH = Path("C:/Users/0501JP/music-playlist/webapp/music.db")
+DATA_ROOT = Path("/home/bons/music-playlist/data")
+DB_PATH = Path("/home/bons/music-playlist/webapp/music.db")
+LMSTUDIO_API_URL = os.getenv("LMSTUDIO_API_URL", "http://localhost:1234/v1")
+LMSTUDIO_BIN_PATH = os.getenv("LMSTUDIO_BIN_PATH", "/mnt/c/Users/0501JP/.lmstudio/bin/lms.exe")
+LMSTUDIO_PROCESS = None
 
 from contextlib import asynccontextmanager
+
+# Import LM Studio bridge
+import sys
+sys.path.insert(0, str(Path(__file__).parent))
+from lmstudio_bridge import bridge, register_lmstudio_routes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_jsonl_to_db()
+    import asyncio
+    start_jsonl_watcher(asyncio.get_event_loop())
     yield
 
 app = FastAPI(title="Music Playlist API", lifespan=lifespan)
+
+# Register LM Studio routes after app is created
+register_lmstudio_routes(app)
 
 def get_db():
     conn = sqlite3.connect(str(DB_PATH))
@@ -83,6 +100,84 @@ def load_jsonl_to_db():
                         pass
     conn.commit()
     conn.close()
+
+# ============= WebSocket Manager =============
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        disconnected = []
+        for conn in self.active_connections:
+            try:
+                await conn.send_json(message)
+            except Exception:
+                disconnected.append(conn)
+        for conn in disconnected:
+            try:
+                self.disconnect(conn)
+            except Exception:
+                pass
+
+manager = ConnectionManager()
+
+# JSONL file watcher — broadcasts when data changes
+class JSONLHandler(FileSystemEventHandler):
+    def __init__(self, loop):
+        self.loop = loop
+
+    def on_modified(self, event):
+        if event.src_path.endswith(".jsonl"):
+            asyncio.run_coroutine_threadsafe(
+                manager.broadcast({"type": "tracks_updated", "file": event.src_path}),
+                self.loop,
+            )
+
+jsonl_observer = None
+jsonl_loop = None
+
+def start_jsonl_watcher(loop):
+    global jsonl_observer, jsonl_loop
+    jsonl_loop = loop
+    event_handler = JSONLHandler(loop)
+    jsonl_observer = Observer()
+    jsonl_observer.schedule(event_handler, str(DATA_ROOT), recursive=True)
+    jsonl_observer.start()
+
+# ============= WebSocket endpoints =============
+
+@app.websocket("/ws/playlist")
+async def websocket_playlist(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError:
+                continue
+            # CRX sends new track JSONL lines
+            if msg.get("type") == "append_tracks" and msg.get("lines"):
+                append_lines_to_jsonl(msg["lines"])
+                await manager.broadcast({"type": "tracks_appended", "count": len(msg["lines"])})
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+def append_lines_to_jsonl(lines):
+    """Append JSONL lines to Japan file."""
+    out_path = DATA_ROOT / "japan" / "tracks.jsonl"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "a", encoding="utf-8") as f:
+        for line in lines:
+            f.write(line + "\n")
 
 # ============= DB-driven endpoints =============
 
@@ -412,9 +507,10 @@ SIDEBAR_HTML = """
 </html>
 """
 
-@app.get("/", response_class=HTMLResponse)
-def index():
-    return SIDEBAR_HTML
+@app.get("/playlist", response_class=HTMLResponse)
+def playlist():
+    html_path = Path(__file__).parent / "playlist.html"
+    return HTMLResponse(html_path.read_text(encoding="utf-8"))
 
 @app.get("/sidebar", response_class=HTMLResponse)
 def sidebar():

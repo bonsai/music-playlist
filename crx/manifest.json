@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Music Playlist Sidebar",
+  "name": "Radiooooo Playlist Sync",
   "version": "1.0.0",
-  "description": "Music Playlist sidebar - displays tracks from localhost:8000",
+  "description": "Radiooooo から曲を JSONL 保存 → WebSocket でプレイリスト更新",
   "permissions": [
     "activeTab",
     "storage",
@@ -10,19 +10,24 @@
   ],
   "host_permissions": [
     "http://localhost/*",
-    "http://127.0.0.1/*"
+    "http://127.0.0.1/*",
+    "*://*.radiooooo.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Music Playlist"
+    "default_title": "Radiooooo Playlist"
   },
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
+      "matches": ["*://*.radiooooo.com/*"],
       "js": ["content.js"]
+    },
+    {
+      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["sidebar.js"]
     }
   ],
   "side_panel": {
